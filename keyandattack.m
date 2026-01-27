@@ -144,7 +144,7 @@ RecMinAttackKS := function(q,v,d,o1,o2,Pk,K,A,P,Pol,n,m, k, r, s,x,y,w,Vm,Vn)
 
     Qdeformed := [Matrix(Pol,([ Eltseq(Evaluate( Pprimelist[i], Eltseq(basis_vectors [j])) ): i in [1..n]])): j in [1..n]];
     Qdeformed := [ FlattenMatrix(Qdeformed[i]) : i in [1..n]];
-    Qdeformed;
+    //Qdeformed;
 
 
     X := [A.i: i in [s+1..k+s]];
@@ -157,16 +157,16 @@ RecMinAttackKS := function(q,v,d,o1,o2,Pk,K,A,P,Pol,n,m, k, r, s,x,y,w,Vm,Vn)
 
     KS := Transpose(MY)*MX;
 
-    Eval1 := Evaluate( Eltseq(Pk), Eltseq(yvec));
-    Eval := Evaluate( Eltseq(Eval1), Eltseq(avec));
+    Eval1 := Evaluate( Eltseq(Pk), Eltseq(yvec)); //after this, we have an element of P
+    Eval := Evaluate( Eltseq(Eval1), Eltseq(avec)); //after this, we have an element of A
 
-    PolyList  := Eltseq(KS) cat [Evaluate(item,zerovec): item in Eval];
+    PolyList  := Eltseq(KS) cat Eval; //we want an element of A
     //PolyList  := Eltseq(KS) cat Eval;
 
     // You need to do this manually to find a unique solution
-    constraints:= [Name(A,s+9), Name(A,s+10)+1];
+    //constraints:= [Name(A,s+9), Name(A,s+10), Name(A,s+8), Name(A,s+7)];//adding constraints to avoid getting multiple solutions
 
-    //constraints:= [];//theoritically, this should work but I ran out of memory so I needed to keep adding constraints
+    constraints:= [];//theoritically, this should work but I ran out of memory so I needed to keep adding constraints
     PolyList := PolyList cat constraints;
     CoercedPolyList := [ A ! f : f in PolyList ];
     I := ideal< A | CoercedPolyList >;
@@ -212,20 +212,17 @@ end function;
 
 
 // 1. Initialize once
-print Date(); // Returns a string like "Tue Jan 27 2026"
-print Time(); // Returns a string like "10:30:05"
-
-q, v, d, o1, o2 := Explode([4, 3, 4, 2, 3]);
-SetupAttackRings(q, v, d, o1, o2);
-
-//K,A, P, Pol,n, m, k, r, s,x,y,w,Vm,Vn:= Explode(SetupAttackRings(q, v, d, o1, o2));
+q, v, d, o1, o2 := Explode([2, 6, 3, 3, 6]);
+//SetupAttackRings(q, v, d, o1, o2);
+//q;
+K,A, P, Pol,n, m, k, r, s,x,y,w,Vm,Vn:= Explode(SetupAttackRings(q, v, d, o1, o2));
 
 // 2. Generate Key
-//Pk := PubKey(q,v,d,o1,o2,K,A,P,Pol,n, m, k, r, s,x,y,w,Vm,Vn);
+Pk := PubKey(q,v,d,o1,o2,K,A,P,Pol,n, m, k, r, s,x,y,w,Vm,Vn);
 //Pk;
 // 3. Rectangular MinRank Attack Using Kipnis and Shamir
 "Starting Attack...";
-//foundvec := RecMinAttackKS(q,v,d,o1, o2, Pk,K,A,P,Pol,n, m, k, r, s,x,y,w,Vm,Vn);
+foundvec := RecMinAttackKS(q,v,d,o1, o2, Pk,K,A,P,Pol,n, m, k, r, s,x,y,w,Vm,Vn);
 
 //function newattack
 //return the new attack
