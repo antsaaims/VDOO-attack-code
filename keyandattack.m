@@ -18,7 +18,7 @@ SetupAttackRings := function(q, v, d, o1, o2)
     r := o2;
     s := r * (n - r);
     vars_A := [ Sprintf("z%o", j) : j in [1..s] ] cat [ Sprintf("a%o", i) : i in [1..k] ];
-    A := PolynomialRing(K, #vars_A, "lex");
+    A := PolynomialRing(K, #vars_A, "grevlex");
     AssignNames(~A, vars_A);
     
     // 2. Define Ring P over A (for the Polar Form / y-variables)
@@ -36,12 +36,12 @@ PubKey := function(q,v,d,o1,o2,K,A,P,Pol,n, m, k, r, s,x,y,w,Vm,Vn)
     diag := [1 : i in [1..d]];
     parameters := [v] cat diag cat [o1,o2];
     u:= #parameters -1;
-    v:=[];
-    o:=[];
-    v[1]:=parameters[1];
+    vlist:=[];
+    olist:=[];
+    vlist[1]:=parameters[1];
     for i:=1 to u do
-        o[i]:=parameters[i+1];
-        v[i+1]:=v[i]+o[i];
+        olist[i]:=parameters[i+1];
+        vlist[i+1]:=vlist[i]+olist[i];
     end for;
 
     // key generation
@@ -59,11 +59,11 @@ PubKey := function(q,v,d,o1,o2,K,A,P,Pol,n, m, k, r, s,x,y,w,Vm,Vn)
 
     for greatloop:=1 to u do
 
-        for loop:=v[greatloop]-v[1]+1 to v[greatloop+1]-v[1] do // greatloop-th Layer --------------------------------
+        for loop:=vlist[greatloop]-vlist[1]+1 to vlist[greatloop+1]-vlist[1] do // greatloop-th Layer --------------------------------
             Q[loop]:=Pol!0;
 
-            for i:=1 to v[greatloop] do
-                for j:=1 to v[greatloop+1] do
+            for i:=1 to vlist[greatloop] do
+                for j:=1 to vlist[greatloop+1] do
                     Q[loop]:=Q[loop] + Random(K)*Pol.i*Pol.j;
                 end for;
             end for;
@@ -161,20 +161,19 @@ RecMinAttackKS := function(q,v,d,o1,o2,Pk,K,A,P,Pol,n,m, k, r, s,x,y,w,Vm,Vn)
     Eval := Evaluate( Eltseq(Eval1), Eltseq(avec)); //after this, we have an element of A
 
     PolyList  := Eltseq(KS) cat Eval; //we want an element of A
-    //PolyList  := Eltseq(KS) cat Eval;
-
     // You need to do this manually to find a unique solution
-    //constraints:= [Name(A,s+9), Name(A,s+10), Name(A,s+8), Name(A,s+7)];//adding constraints to avoid getting multiple solutions
-
-    constraints:= [];//theoritically, this should work but I ran out of memory so I needed to keep adding constraints
+    //constraints:= [Name(A,s+1) , Name(A,s+1), Name(A,s+1), Name(A,s+4)+1, Name(A,s+5)];//adding constraints to avoid getting multiple solutions
+ 
+    constraints:= [A.(s+1) - 1];//we need to make sure we don't get the zero vector as a solution. You can change this constraint as needed.
     PolyList := PolyList cat constraints;
     CoercedPolyList := [ A ! f : f in PolyList ];
     I := ideal< A | CoercedPolyList >;
-    G := GroebnerBasis(I);
-    V := Variety(I);   // list of solutions as tuples
+    Groebner(I);
+    time V := Variety(I: Al := "Wiedemann");  // list of solutions as tuples
     //print "Number of solutions:", #V;
     if #V eq 0 then
-        print "No solutions.";
+        print "No non-zero solutions.";
+        return [K!0: i in [1..n]];//return zero vector if no solutions found
     else
         // pick first non-zero vector (if exists)       
         for v in V do
@@ -205,17 +204,50 @@ RecMinAttackKS := function(q,v,d,o1,o2,Pk,K,A,P,Pol,n,m, k, r, s,x,y,w,Vm,Vn)
             print "All solutions returned are zero.";
         end if;
     end if;
+
     return foundvec;
+end function;
+
+// Check if all results are zero.
+IsRoot := function(Pk, foundvec,K)
+        Results := [];
+    // Iterate through each polynomial f in Pk
+    Pklist := Eltseq(Pk);
+    for f in Pklist do
+        // 'Evaluate' substitutes the values from TestVector for the variables x[1]...x[n].
+        result_val := Evaluate(f, foundvec);
+
+        // Append the result, ensuring it's treated as an element of K.
+        Append(~Results, K!result_val);
+    end for;
+    value := true;
+    for result in Results do
+        if result ne K!0 then
+            value := false;
+            break;
+        end if;
+    end for;
+
+    // .Print the result.
+    printf "\n*** Root Check *** \n";
+    printf "O2 vector: %o \n", foundvec;
+    printf "Polynomial system ha[i] polynomials. \n", #Pklist;
+    printf "Evaluation Results: %o \n", Results;
+    if value then
+        printf "yes  The Test Vector IS a root of Pk (all evaluations equal 0). \n";
+    else
+        printf "no, The Test Vector IS NOT a root of Pk (found non-zero result). \n";
+    end if;
+    return value;
 end function;
 
 
 
-
 // 1. Initialize once
-q, v, d, o1, o2 := Explode([2, 6, 3, 3, 6]);
+q, v, d, o1, o2 := Explode([4,3,4,2,2]);
 //SetupAttackRings(q, v, d, o1, o2);
 //q;
-K,A, P, Pol,n, m, k, r, s,x,y,w,Vm,Vn:= Explode(SetupAttackRings(q, v, d, o1, o2));
+K,A, P, Pol,n, m, k, r, s,x,y,w,Vm,Vn := Explode(SetupAttackRings(q, v, d, o1, o2));
 
 // 2. Generate Key
 Pk := PubKey(q,v,d,o1,o2,K,A,P,Pol,n, m, k, r, s,x,y,w,Vm,Vn);
@@ -223,7 +255,10 @@ Pk := PubKey(q,v,d,o1,o2,K,A,P,Pol,n, m, k, r, s,x,y,w,Vm,Vn);
 // 3. Rectangular MinRank Attack Using Kipnis and Shamir
 "Starting Attack...";
 foundvec := RecMinAttackKS(q,v,d,o1, o2, Pk,K,A,P,Pol,n, m, k, r, s,x,y,w,Vm,Vn);
+foundvec;
+IsRoot(Pk, foundvec,K);
 
 //function newattack
 //return the new attack
+
 
