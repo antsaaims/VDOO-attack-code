@@ -172,7 +172,7 @@ RecMinAttackKS := function(q,v,d,o1,o2,Pk,K,A,P,Pol,n,m, k, r, s,x,y,w,Vm,Vn)
     time V := Variety(I: Al := "Wiedemann");  // list of solutions as tuples
     //print "Number of solutions:", #V;
     if #V eq 0 then
-        print "No non-zero solutions.";
+        print "No non-zero solutions found, please change the linear constraint.";
         return [K!0: i in [1..n]];//return zero vector if no solutions found
     else
         // pick first non-zero vector (if exists)       
