@@ -4,9 +4,6 @@ Some of the code where adapted from
 https://drive.google.com/file/d/1wb6LD9vi4M9C5Za1-P2fBFob0mE1-pgK/view, 
 which was created by Ding et al.
 ------------------------------------------------------------*/
-// 1. Initialize the parameters once
-
-q, v, d, o1, o2 := Explode([4,3,4,2,2]);
 
 SetupAttackRings := function(q, v, d, o1, o2)
     "Defining Rings for VDOO Attack...";
@@ -29,58 +26,13 @@ SetupAttackRings := function(q, v, d, o1, o2)
     
     // 3. Define Ring Pol over P (for the Public Key / x-variables)
     Pol<[x]> := PolynomialRing(P, n);
-    FlattenToA := function(poly)
-        //Use this for constant polynomial only
-        // 1. If it's in Pol, evaluate at x=0 to get into P
-        if Parent(poly) eq Pol then
-            poly := Evaluate(poly, [P!0 : i in [1..n]]);
-        end if;
-        
-        // 2. If it's in P, evaluate at y=0 to get into A
-        if Parent(poly) eq P then
-            poly := Evaluate(poly, [A!0 : i in [1..n]]);
-        end if;
-        
-    end function;
-   
-    FlattenMatrix := function(M)
-        rows := NumberOfRows(M);
-        cols := NumberOfColumns(M);
-        
-        // Apply FlattenToA to every entry in a single flat list
-        flat_entries := [ FlattenToA(M[i, j]) : j in [1..cols], i in [1..rows] ];
-        
-        // Reconstruct the matrix over Ring A
-        return Matrix(A, rows, cols, flat_entries);
-    end function;
     // Return them as a list/tuple to be unpacked
-    yvec := Vector( [P.i: i in [1..n]] );
-    // creating the basis vectors
-    basis_vectors := [ Vn!([ i eq j select 1 else 0 : j in [1..n] ]) 
-        : i in [1..n]
-    ];
-
-    yvar :=  Vector(([P.i: i in [1..n]]));
-    zerovar :=  Vector(([P!0: i in [1..n]]));
-    zerovec:= [K!0: i in [1..n]];// Evaluate(Pk, avec) is in P<y> and we want it to be in A so that we can take the ideal. 
-    
-
-    X := [A.i: i in [s+1..k+s]];
-    Y := [A.i: i in [1..s]];
-    avec := [X[i]: i in [1..n - o2+1]] cat [0: i in [1..o2-1]];
-    MatY := Matrix(r, n - r, Y);
-    I := IdentityMatrix(A, n - r);
-    MY := VerticalJoin( I , MatY);
-    return <K,A, P, Pol,n, m, k, r, s,x,y,w,Vm,Vn,FlattenToA, \
-    FlattenMatrix, yvec, yvar,basis_vectors, zerovar, zerovec,\
-    X, Y, avec, MatY, I, MY>;
+    return <K,A, P, Pol,n, m, k, r, s,x,y,w,Vm,Vn>;
 end function;
 
-K,A, P, Pol,n, m, k, r, s,x,y,w,Vm,Vn,FlattenToA,\
-FlattenMatrix, yvec, yvar,basis_vectors, zerovar, \
-zerovec,  X, Y, avec, MatY, I, MY := Explode(SetupAttackRings(q, v, d, o1, o2));
 
-PubKey := function()
+
+PubKey := function(q,v,d,o1,o2,K,A,P,Pol,n, m, k, r, s,x,y,w,Vm,Vn)
     diag := [1 : i in [1..d]];
     parameters := [v] cat diag cat [o1,o2];
     u:= #parameters -1;
@@ -91,6 +43,7 @@ PubKey := function()
         olist[i]:=parameters[i+1];
         vlist[i+1]:=vlist[i]+olist[i];
     end for;
+
     // key generation
     // affine map T -----------------------------------------------------------------------------
     repeat
@@ -134,7 +87,7 @@ end function;
 
 
 
-RecMinAttackKS := function(Pk)
+RecMinAttackKS := function(q,v,d,o1,o2,Pk,K,A,P,Pol,n,m, k, r, s,x,y,w,Vm,Vn)
     //"Pk at this point";
     //Pk;
 
@@ -143,7 +96,45 @@ RecMinAttackKS := function(Pk)
     "Using Rectangular Minrank attack and P(y)=0";
     "Method: Kipnis and Shamir";
     "***************************************************";
+    yvec := Vector( [P.i: i in [1..n]] );
+
+
+    // creating the basis vectors
+    basis_vectors := [ Vn!([ i eq j select 1 else 0 : j in [1..n] ]) 
+        : i in [1..n]
+    ];
+
+    yvar :=  Vector(([P.i: i in [1..n]]));
+    zerovar :=  Vector(([P!0: i in [1..n]]));
+    zerovec:= [K!0: i in [1..n]];// Evaluate(Pk, avec) is in P<y> and we want it to be in A so that we can take the ideal. 
     
+    
+    FlattenToA := function(poly)
+        //Use this for constant polynomial only
+        // 1. If it's in Pol, evaluate at x=0 to get into P
+        if Parent(poly) eq Pol then
+            poly := Evaluate(poly, [P!0 : i in [1..n]]);
+        end if;
+        
+        // 2. If it's in P, evaluate at y=0 to get into A
+        if Parent(poly) eq P then
+            poly := Evaluate(poly, [A!0 : i in [1..n]]);
+        end if;
+        
+        return A ! poly;
+    end function;
+   
+    FlattenMatrix := function(M)
+        rows := NumberOfRows(M);
+        cols := NumberOfColumns(M);
+        
+        // Apply FlattenToA to every entry in a single flat list
+        flat_entries := [ FlattenToA(M[i, j]) : j in [1..cols], i in [1..rows] ];
+        
+        // Reconstruct the matrix over Ring A
+        return Matrix(A, rows, cols, flat_entries);
+    end function;
+
     Pprimelist:= [];
     for i in [1..n] do
         eval1:= Vector( Evaluate( Pk, Eltseq(yvar + basis_vectors [i] )));
@@ -156,6 +147,13 @@ RecMinAttackKS := function(Pk)
     Qdeformed := [ FlattenMatrix(Qdeformed[i]) : i in [1..n]];
     //Qdeformed;
 
+
+    X := [A.i: i in [s+1..k+s]];
+    Y := [A.i: i in [1..s]];
+    avec := [X[i]: i in [1..n - o2+1]] cat [0: i in [1..o2-1]];
+    MatY := Matrix(r, n - r, Y);
+    I := IdentityMatrix(A, n - r);
+    MY := VerticalJoin( I , MatY);
     MX  := &+[ X[i] * Qdeformed[i] : i in [1..k]] ;
 
     KS := Transpose(MY)*MX;
@@ -164,6 +162,9 @@ RecMinAttackKS := function(Pk)
     Eval := Evaluate( Eltseq(Eval1), Eltseq(avec)); //after this, we have an element of A
 
     PolyList  := Eltseq(KS) cat Eval; //we want an element of A
+    // You need to do this manually to find a unique solution
+    //constraints:= [Name(A,s+1) , Name(A,s+1), Name(A,s+1), Name(A,s+4)+1, Name(A,s+5)];//adding constraints to avoid getting multiple solutions
+ 
     constraints:= [A.(s+1) - 1];//we need to make sure we don't get the zero vector as a solution. You can change this constraint as needed.
     PolyList := PolyList cat constraints;
     CoercedPolyList := [ A ! f : f in PolyList ];
@@ -208,28 +209,6 @@ RecMinAttackKS := function(Pk)
     return foundvec;
 end function;
 
-SimpleRecMinAttackKS := function(q,v,d,o1,o2,Pk,K,A,P,Pol,n,m, k, r, s,x,y,w,Vm,Vn,FlattenToA, FlattenMatrix)
-    "*************************************************************** \n";
-    "***        Attacking Vdoo Signature Scheme                  *** \n";
-    "*** Using the combined Simple and Rectangular Minrank attack*** \n";
-    "***          Method: Kipnis and Shamir                      *** \n";
-    "*************************************************************** \n \n";
-
-
-
-
-end function;
-
-
-
-
-
-
-
-
-
-
-
 // Check if all results are zero.
 IsRoot := function(Pk, foundvec,K)
         Results := [];
@@ -265,14 +244,18 @@ end function;
 
 
 
- 
+// 1. Initialize once
+q, v, d, o1, o2 := Explode([4,3,4,2,2]);
+//SetupAttackRings(q, v, d, o1, o2);
+//q;
+K,A, P, Pol,n, m, k, r, s,x,y,w,Vm,Vn := Explode(SetupAttackRings(q, v, d, o1, o2));
 
 // 2. Generate Key
-Pk := PubKey();
+Pk := PubKey(q,v,d,o1,o2,K,A,P,Pol,n, m, k, r, s,x,y,w,Vm,Vn);
 //Pk;
 // 3. Rectangular MinRank Attack Using Kipnis and Shamir
-"Starting Attacks...";
-time foundvec := RecMinAttackKS(Pk);
+"Starting Attack...";
+time foundvec := RecMinAttackKS(q,v,d,o1, o2, Pk,K,A,P,Pol,n, m, k, r, s,x,y,w,Vm,Vn);
 //foundvec;
 IsRoot(Pk, foundvec,K);
 
@@ -280,5 +263,3 @@ IsRoot(Pk, foundvec,K);
 //return the new attack
 
 
-//time sfoundvec:= SimpleRecMinAttackKS(q,v,d,o1, o2, Pk,K,A,P,Pol,n, m, k, r, s,x,y,w,Vm,Vn,FlattenToA, FlattenMatrix);
-//IsRoot(Pk, sfoundvec,K);
