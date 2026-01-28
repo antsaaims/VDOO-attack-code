@@ -86,15 +86,16 @@ end function;
 
 
 
-"***************************************************";
-"Attacking Vdoo Signature Scheme";
-"Using Rectangular Minrank attack and P(y)=0";
-"Method: Kipnis and Shamir";
-"***************************************************";
 
 RecMinAttackKS := function(q,v,d,o1,o2,Pk,K,A,P,Pol,n,m, k, r, s,x,y,w,Vm,Vn)
     //"Pk at this point";
     //Pk;
+
+    "***************************************************";
+    "Attacking Vdoo Signature Scheme";
+    "Using Rectangular Minrank attack and P(y)=0";
+    "Method: Kipnis and Shamir";
+    "***************************************************";
     yvec := Vector( [P.i: i in [1..n]] );
 
 
@@ -169,7 +170,7 @@ RecMinAttackKS := function(q,v,d,o1,o2,Pk,K,A,P,Pol,n,m, k, r, s,x,y,w,Vm,Vn)
     CoercedPolyList := [ A ! f : f in PolyList ];
     I := ideal< A | CoercedPolyList >;
     Groebner(I);
-    time V := Variety(I: Al := "Wiedemann");  // list of solutions as tuples
+    V := Variety(I: Al := "Wiedemann");  // list of solutions as tuples
     //print "Number of solutions:", #V;
     if #V eq 0 then
         print "No non-zero solutions found, please change the linear constraint.";
@@ -231,12 +232,12 @@ IsRoot := function(Pk, foundvec,K)
     // .Print the result.
     printf "\n*** Root Check *** \n";
     printf "O2 vector: %o \n", foundvec;
-    printf "Polynomial system ha[i] polynomials. \n", #Pklist;
+    printf "Number of polynomials we have checked. \n", #Pklist;
     printf "Evaluation Results: %o \n", Results;
     if value then
-        printf "yes  The Test Vector IS a root of Pk (all evaluations equal 0). \n";
+        printf "YES, The given vector IS a root of Pk (all evaluations equal 0). \n";
     else
-        printf "no, The Test Vector IS NOT a root of Pk (found non-zero result). \n";
+        printf "NO, The given vector IS NOT a root of Pk (found non-zero result). \n";
     end if;
     return value;
 end function;
@@ -254,8 +255,8 @@ Pk := PubKey(q,v,d,o1,o2,K,A,P,Pol,n, m, k, r, s,x,y,w,Vm,Vn);
 //Pk;
 // 3. Rectangular MinRank Attack Using Kipnis and Shamir
 "Starting Attack...";
-foundvec := RecMinAttackKS(q,v,d,o1, o2, Pk,K,A,P,Pol,n, m, k, r, s,x,y,w,Vm,Vn);
-foundvec;
+time foundvec := RecMinAttackKS(q,v,d,o1, o2, Pk,K,A,P,Pol,n, m, k, r, s,x,y,w,Vm,Vn);
+//foundvec;
 IsRoot(Pk, foundvec,K);
 
 //function newattack
