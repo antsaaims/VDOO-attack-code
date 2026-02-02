@@ -1,10 +1,6 @@
 // Parameters
-q := 256;
-n := 196;
-d := 0;
-o1 := 36;
-o2 := 64;
-v := n - d - o1 - o2;
+q, v, d, o1, o2 := Explode([16,60,30,34,36]);
+
 
 ComplexityPadded := function(q, v, d, o1, o2, l)
     nrows := l * (v + d + o1 + o2);
