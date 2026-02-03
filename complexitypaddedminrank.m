@@ -1,4 +1,3 @@
-// Copy and paste this code to http://magma.maths.usyd.edu.au/calc/ to run it.
 // Parameters
 q, v, d, o1, o2 := Explode([16,60,30,34,36]);
 
