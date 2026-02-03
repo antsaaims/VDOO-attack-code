@@ -4,7 +4,7 @@ Some of the code where adapted from
 https://drive.google.com/file/d/1wb6LD9vi4M9C5Za1-P2fBFob0mE1-pgK/view, 
 which was created by Ding et al.
 ------------------------------------------------------------*/
-
+// Copy and paste this code to http://magma.maths.usyd.edu.au/calc/ to run it.
 // 1. Initialize the ring once, you need to set the parameters here
 q, v, d, o1, o2 := Explode([4,3,4,2,2]);
 
